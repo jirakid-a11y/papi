@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-family: 'Inter', 'Noto Sans Thai', system-ui, sans-serif;
+    line-height: 1.65; /* Thai vowel stacking safe */
+  }
+}
