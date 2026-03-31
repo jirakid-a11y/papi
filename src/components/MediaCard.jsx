@@ -1,15 +1,12 @@
-// src/components/MediaCard.jsx
-// Papi — Atom · Single media file card
-
+import { memo } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { extOf } from '../utils/fileHelpers'
 
-const KIND_ICON = {
-  audio: '🎵',
-}
+const KIND_ICON = { audio: '🎵' }
 
-export default function MediaCard({ item, getUrl, onClick }) {
-  const { ref, inView } = useInView({ triggerOnce: true, rootMargin: '200px' })
+// React.memo prevents re-renders when the virtual row re-renders but the item hasn't changed.
+const MediaCard = memo(function MediaCard({ item, getUrl, onClick }) {
+  const { ref, inView } = useInView({ triggerOnce: true, rootMargin: '300px' })
 
   return (
     <div
@@ -20,7 +17,6 @@ export default function MediaCard({ item, getUrl, onClick }) {
                  transition-all duration-150
                  hover:-translate-y-1 hover:border-zinc-500 hover:shadow-xl hover:shadow-black/50"
     >
-      {/* Thumbnail */}
       {item.kind === 'image' ? (
         <div className="w-full bg-zinc-800">
           {inView && (
@@ -28,6 +24,7 @@ export default function MediaCard({ item, getUrl, onClick }) {
               src={getUrl(item)}
               alt={item.name}
               className="w-full h-auto block"
+              loading="lazy"
             />
           )}
         </div>
@@ -39,7 +36,9 @@ export default function MediaCard({ item, getUrl, onClick }) {
               muted
               preload="metadata"
               className="w-full h-auto block"
-              onLoadedMetadata={e => { e.target.currentTime = 1 }}
+              onLoadedMetadata={e => {
+                e.target.currentTime = Math.min(1, e.target.duration * 0.1)
+              }}
             />
           )}
         </div>
@@ -52,11 +51,9 @@ export default function MediaCard({ item, getUrl, onClick }) {
         </div>
       )}
 
-      {/* Play overlay for video / audio */}
       {item.kind !== 'image' && (
         <div className="absolute inset-0 flex items-center justify-center
-                        bg-black/0 group-hover:bg-black/40
-                        transition-colors duration-150">
+                        bg-black/0 group-hover:bg-black/40 transition-colors duration-150">
           <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center
                           opacity-0 scale-75
                           group-hover:opacity-100 group-hover:scale-100
@@ -67,4 +64,6 @@ export default function MediaCard({ item, getUrl, onClick }) {
       )}
     </div>
   )
-}
+})
+
+export default MediaCard

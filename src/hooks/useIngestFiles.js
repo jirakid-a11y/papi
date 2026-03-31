@@ -4,56 +4,45 @@
 import { useState, useCallback, useRef } from 'react'
 import { kindOf, albumOf, isSupported } from '../utils/fileHelpers'
 
-const CHUNK_SIZE = 80 // files processed per frame yield
+const CHUNK_SIZE = 200 // files processed per frame yield — larger = faster ingest
 
 // macOS hidden folders to exclude
-const BLOCKED_FOLDERS = ['__MACOSX', '.Spotlight-V100', '.Trashes', '.fseventsd', '.TemporaryItems']
+const BLOCKED_FOLDERS = new Set(['__MACOSX', '.Spotlight-V100', '.Trashes', '.fseventsd', '.TemporaryItems'])
 
 const isHiddenPath = (file) => {
   const parts = (file.webkitRelativePath || file.name).split('/')
-  return parts.some(part =>
-    part.startsWith('.') || BLOCKED_FOLDERS.includes(part)
-  )
+  return parts.some(part => part.startsWith('.') || BLOCKED_FOLDERS.has(part))
 }
 
 /**
  * @typedef {Object} MediaItem
- * @property {string} id      - Unique ID (index-based)
+ * @property {string} id
  * @property {File}   file
- * @property {string|null} url - Object URL, created lazily
+ * @property {string|null} url  - Object URL, created lazily
  * @property {string} name
  * @property {number} size
- * @property {string} kind   - 'image' | 'video' | 'audio'
- * @property {string} album  - Derived from folder path
+ * @property {number} lastModified
+ * @property {string} kind       - 'image' | 'video' | 'audio'
+ * @property {string} album
  */
 
-/**
- * @returns {{
- *   media: MediaItem[],
- *   progress: { loading: boolean, current: number, total: number },
- *   ingest: (files: File[]) => void,
- *   getUrl: (item: MediaItem) => string,
- *   clear: () => void,
- * }}
- */
 export function useIngestFiles() {
   const [media, setMedia]       = useState([])
   const [progress, setProgress] = useState({ loading: false, current: 0, total: 0 })
-
-  // Keep a ref to current media for URL management without stale closures
   const mediaRef = useRef([])
 
-  /** Lazily create and cache an object URL for a media item */
+  /**
+   * Lazily create and cache an object URL.
+   * O(1) — mutates item.url directly since item is the same object in both
+   * state and mediaRef (no array search needed).
+   */
   const getUrl = useCallback((item) => {
     if (item.url) return item.url
     const url = URL.createObjectURL(item.file)
-    // Mutate the ref directly — URL creation doesn't need a re-render
-    const idx = mediaRef.current.findIndex(m => m.id === item.id)
-    if (idx !== -1) mediaRef.current[idx].url = url
+    item.url = url  // safe direct mutation — same object reference as in state
     return url
   }, [])
 
-  /** Revoke all cached object URLs and reset state */
   const clear = useCallback(() => {
     mediaRef.current.forEach(m => { if (m.url) URL.revokeObjectURL(m.url) })
     mediaRef.current = []
@@ -61,23 +50,21 @@ export function useIngestFiles() {
     setProgress({ loading: false, current: 0, total: 0 })
   }, [])
 
-  /** Ingest a FileList or File array, chunked to keep the UI responsive */
   const ingest = useCallback(async (files) => {
-    const valid = files.filter(f => isSupported(f) && !isHiddenPath(f))
+    const valid = Array.from(files).filter(f => isSupported(f) && !isHiddenPath(f))
     if (!valid.length) return
 
-    // Revoke previous URLs before replacing
+    // Revoke previous object URLs before replacing
     mediaRef.current.forEach(m => { if (m.url) URL.revokeObjectURL(m.url) })
     mediaRef.current = []
 
     setProgress({ loading: true, current: 0, total: valid.length })
 
     const result = []
-
     for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
       const chunk = valid.slice(i, i + CHUNK_SIZE)
-
-      chunk.forEach((file, j) => {
+      for (let j = 0; j < chunk.length; j++) {
+        const file = chunk[j]
         result.push({
           id:           `${i + j}`,
           file,
@@ -88,15 +75,9 @@ export function useIngestFiles() {
           kind:         kindOf(file),
           album:        albumOf(file),
         })
-      })
-
-      setProgress(prev => ({
-        ...prev,
-        current: Math.min(i + CHUNK_SIZE, valid.length),
-      }))
-
-      // Yield to browser between chunks to keep UI responsive
-      await new Promise(r => setTimeout(r, 0))
+      }
+      setProgress(prev => ({ ...prev, current: Math.min(i + CHUNK_SIZE, valid.length) }))
+      await new Promise(r => setTimeout(r, 0))  // yield to browser
     }
 
     mediaRef.current = result
