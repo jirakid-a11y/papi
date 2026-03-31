@@ -20,18 +20,19 @@ export default function ViewerPage() {
   const [dragging, setDragging] = useState(false)
   const [gridSize, setGridSize] = useState(GRID_DEFAULT)
 
-  // useAlbums now returns: files, subFolders, sidebarFolders, rootFolders
-  const { files, subFolders, sidebarFolders, rootFolders } = useAlbums(
-    media, navPath, sortKey
-  )
+  const { files, subFolders, sidebarFolders, rootFolders, treeItems } = useAlbums(media, navPath, sortKey)
 
   const hasMedia     = media.length > 0
   const lightboxOpen = lbIndex !== null
-  const lightboxItem = lightboxOpen ? (files[lbIndex] ?? null) : null
+  const lightboxItem = lightboxOpen ? files[lbIndex] ?? null : null
   const canGoUp      = navPath.length > 0
 
+  const imgCount = media.filter(m => m.kind === 'image').length
+  const vidCount = media.filter(m => m.kind === 'video').length
+  const audCount = media.filter(m => m.kind === 'audio').length
+
   const currentLabel = navPath.length > 0 ? navPath[navPath.length - 1] : ''
-  const statusText   = !hasMedia
+  const statusText = !hasMedia
     ? 'Ready — open a folder to begin'
     : `${files.length.toLocaleString()} files${currentLabel ? ` in "${currentLabel}"` : ''}`
 
@@ -40,13 +41,13 @@ export default function ViewerPage() {
     setLbIndex(null)
   }, [])
 
-  const handleGoUp = useCallback(() => {
-    setNavPath(p => p.slice(0, -1))
+  const handleNavToPath = useCallback((path) => {
+    setNavPath(path)
     setLbIndex(null)
   }, [])
 
-  const handleBreadcrumb = useCallback((idx) => {
-    setNavPath(p => idx < 0 ? [] : p.slice(0, idx + 1))
+  const handleGoUp = useCallback(() => {
+    setNavPath(p => p.slice(0, -1))
     setLbIndex(null)
   }, [])
 
@@ -59,8 +60,8 @@ export default function ViewerPage() {
     )
   }, [lightboxOpen, files.length])
 
-  const handleIngest = useCallback((rawFiles) => {
-    const valid = [...rawFiles].filter(f =>
+  const handleIngest = useCallback((fileList) => {
+    const valid = [...fileList].filter(f =>
       !f.name.startsWith('.') &&
       (f.type.startsWith('image/') || f.type.startsWith('video/') || f.type.startsWith('audio/'))
     )
@@ -69,7 +70,7 @@ export default function ViewerPage() {
         `You're opening ${valid.length.toLocaleString()} files.\n\nPapi works best under ${FILE_LIMIT.toLocaleString()} files.\n\nContinue anyway?`
       )) return
     }
-    ingest(rawFiles)
+    ingest(fileList)
     setNavPath([])
     setLbIndex(null)
   }, [ingest])
@@ -77,7 +78,6 @@ export default function ViewerPage() {
   return (
     <div className="h-screen flex flex-col bg-black text-gray-200 overflow-hidden">
 
-      {/* Toolbar */}
       <Toolbar
         onOpenFolder={handleIngest}
         onGoUp={handleGoUp}
@@ -86,31 +86,28 @@ export default function ViewerPage() {
         onSortChange={setSortKey}
         gridSize={gridSize}
         onGridSizeChange={setGridSize}
-        navPath={navPath}
-        onBreadcrumb={handleBreadcrumb}
-        rootFolders={rootFolders}
+        activeAlbum={currentLabel}
+        albumFileCount={files.length}
       />
 
-      {/* Body */}
+      {/* Body: sidebar + main */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Sidebar — only when sub-folders exist */}
-        {hasMedia && sidebarFolders.length > 0 && (
+        {hasMedia && (
           <AlbumSidebar
-            sidebarFolders={sidebarFolders}
+            treeItems={treeItems}
             navPath={navPath}
-            onNavigate={handleNavigate}
+            onNavToPath={handleNavToPath}
             rootFolders={rootFolders}
           />
         )}
 
-        {/* Main */}
         <main
           className="flex-1 overflow-y-auto"
           onWheelCapture={lightboxOpen ? handleWheel : undefined}
         >
           {!hasMedia ? (
-            /* Drop zone */
+            /* Drop / Empty state */
             <label
               onDragOver={e => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
@@ -136,70 +133,76 @@ export default function ViewerPage() {
                 <p className="text-base font-semibold text-zinc-300">Open a folder</p>
                 <p className="text-sm text-zinc-600 mt-1">Click here or drag &amp; drop a folder</p>
               </div>
-              <button type="button"
-                className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded pointer-events-none">
+              <button
+                type="button"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm
+                           font-medium rounded transition-colors pointer-events-none"
+              >
                 Choose Folder
               </button>
               <p className="text-xs text-zinc-700 tracking-wide">
                 JPEG · PNG · GIF · WebP · MP4 · MOV · WebM · MP3 · WAV · FLAC · AAC
               </p>
-              <input type="file" multiple accept="image/*,video/*,audio/*"
+              <input
+                type="file" multiple accept="image/*,video/*,audio/*"
                 onChange={e => handleIngest([...e.target.files])}
                 // @ts-ignore
-                webkitdirectory="" className="hidden" />
+                webkitdirectory=""
+                className="hidden"
+              />
             </label>
 
           ) : (
-            <div className="p-3">
-
-              {/* Sub-folders at current level */}
+            /* Folders + files together */
+            <div className="p-4 space-y-6">
+              {/* Sub-folder icon grid */}
               {subFolders.length > 0 && (
-                <div className="mb-5">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-semibold mb-2">
-                    Folders
-                  </p>
-                  <div className="grid gap-2" style={{
-                    gridTemplateColumns: `repeat(auto-fill, minmax(${Math.min(gridSize, 140)}px, 1fr))`
-                  }}>
-                    {subFolders.map(name => (
-                      <button
-                        key={name}
-                        onClick={() => handleNavigate(name)}
-                        className="flex flex-col items-center gap-1.5 p-3
-                                   bg-zinc-900 border border-zinc-800 rounded-xl
-                                   hover:border-blue-500/50 hover:bg-zinc-800
-                                   transition-all duration-150 group"
-                      >
-                        <span className="text-3xl group-hover:scale-110 transition-transform duration-150">📁</span>
-                        <span className="text-xs font-medium text-zinc-300 truncate w-full text-center">{name}</span>
-                      </button>
-                    ))}
+                <div>
+                  {files.length > 0 && (
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">Folders</p>
+                  )}
+                  <div className="grid gap-2"
+                       style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridSize}px, 1fr))` }}>
+                    {subFolders.map(name => {
+                      const sf = sidebarFolders.find(s => s.name === name)
+                      return (
+                        <button
+                          key={name}
+                          onClick={() => handleNavigate(name)}
+                          className="flex flex-col items-center gap-2 p-4
+                                     bg-zinc-900 border border-zinc-800 rounded-xl
+                                     hover:border-blue-500/50 hover:bg-zinc-800
+                                     transition-all duration-150 group"
+                        >
+                          <span
+                            className="group-hover:scale-110 transition-transform duration-150"
+                            style={{ fontSize: Math.max(32, gridSize * 0.28) + 'px' }}
+                          >
+                            📁
+                          </span>
+                          <span className="text-xs font-medium text-zinc-300 truncate w-full text-center">{name}</span>
+                          <span className="text-[10px] text-zinc-600">{sf?.count?.toLocaleString()} files</span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Files at current level */}
+              {/* Media files */}
               {files.length > 0 && (
-                <>
+                <div>
                   {subFolders.length > 0 && (
-                    <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-semibold mb-2">
-                      Files
-                    </p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">Files</p>
                   )}
                   <MediaGrid
-                    grouped={{ current: files }}
+                    grouped={{ [currentLabel || 'All']: files }}
                     flatItems={files}
                     getUrl={getUrl}
                     onCardClick={(_, idx) => setLbIndex(idx)}
                     gridSize={gridSize}
+                    gridSize={gridSize}
                   />
-                </>
-              )}
-
-              {/* Empty */}
-              {files.length === 0 && subFolders.length === 0 && (
-                <div className="flex items-center justify-center h-48 text-zinc-700 text-sm">
-                  This folder is empty
                 </div>
               )}
             </div>
@@ -209,17 +212,24 @@ export default function ViewerPage() {
 
       {/* Status bar */}
       <div className="flex-shrink-0 flex items-center justify-between
-                      px-3 h-7 bg-zinc-900 border-t border-zinc-800
-                      text-xs text-zinc-500">
+                      px-3 h-7 bg-zinc-900 border-t border-zinc-800 text-xs text-zinc-500">
         <span>{statusText}</span>
-        <span className="hidden sm:flex items-center gap-3">
-          <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">←→</kbd> navigate</span>
-          <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Backspace</kbd> up</span>
-          <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Esc</kbd> close</span>
-        </span>
+        <div className="flex items-center gap-4">
+          {hasMedia && (
+            <span>
+              <span className="text-zinc-400">{imgCount.toLocaleString()}</span> img ·{' '}
+              <span className="text-zinc-400">{vidCount.toLocaleString()}</span> vid ·{' '}
+              <span className="text-zinc-400">{audCount.toLocaleString()}</span> audio
+            </span>
+          )}
+          <span className="hidden sm:flex items-center gap-3">
+            <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">←→</kbd> navigate</span>
+            <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Backspace</kbd> up</span>
+            <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Esc</kbd> close</span>
+          </span>
+        </div>
       </div>
 
-      {/* Lightbox */}
       <Lightbox
         isOpen={lightboxOpen}
         item={lightboxItem}

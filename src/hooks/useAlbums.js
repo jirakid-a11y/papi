@@ -1,27 +1,12 @@
-// src/hooks/useAlbums.js
-// Papi — full-depth folder tree, preserves exact folder structure
-
 import { useMemo } from 'react'
 import { sortMedia } from '../utils/fileHelpers'
 
-/**
- * Build a tree that preserves the FULL path including the root folder name.
- *
- * Example: "Cat Photo Folder/Thai cat/cat1.jpg"
- * → tree["Cat Photo Folder"]["Thai cat"]._files = [cat1, cat2, ...]
- *
- * Every node: { _files: [], SubFolder: { _files: [], ... }, ... }
- */
 function buildTree(media) {
   const root = { _files: [] }
-
   for (const item of media) {
-    const rel   = item.file.webkitRelativePath || item.name
+    const rel = item.file.webkitRelativePath || item.name
     const parts = rel.split('/').filter(Boolean)
-
-    // All segments except the last (filename) are folder segments
     const segments = parts.slice(0, -1)
-
     let node = root
     for (const seg of segments) {
       if (!node[seg]) node[seg] = { _files: [] }
@@ -29,11 +14,9 @@ function buildTree(media) {
     }
     node._files.push(item)
   }
-
   return root
 }
 
-/** Walk the tree along navPath to get the current node */
 function getNode(tree, navPath) {
   let node = tree
   for (const seg of navPath) {
@@ -43,14 +26,10 @@ function getNode(tree, navPath) {
   return node
 }
 
-/** Sub-folder names (exclude _files key), sorted */
 function subFoldersOf(node) {
-  return Object.keys(node)
-    .filter(k => k !== '_files')
-    .sort((a, b) => a.localeCompare(b))
+  return Object.keys(node).filter(k => k !== '_files').sort((a, b) => a.localeCompare(b))
 }
 
-/** Recursively count all files under a node */
 function countAll(node) {
   let n = node._files.length
   for (const key of Object.keys(node)) {
@@ -59,39 +38,44 @@ function countAll(node) {
   return n
 }
 
+// Build a flat list of tree items for the sidebar.
+// Expands only the folders along navPath, keeping all siblings visible.
+function buildTreeItems(node, depth, pathSoFar, navPath) {
+  const items = []
+  for (const name of subFoldersOf(node)) {
+    const pathToThis = [...pathSoFar, name]
+    const isExpanded = navPath[depth] === name
+    const isActive   = isExpanded && navPath.length === depth + 1
+    items.push({
+      name,
+      depth,
+      isActive,
+      isExpanded,
+      count: countAll(node[name]),
+      hasChildren: subFoldersOf(node[name]).length > 0,
+      navPath: pathToThis,
+    })
+    if (isExpanded) {
+      items.push(...buildTreeItems(node[name], depth + 1, pathToThis, navPath))
+    }
+  }
+  return items
+}
+
 export function useAlbums(media, navPath, sortKey) {
-  // Rebuild tree only when media changes
-  const tree = useMemo(() => buildTree(media), [media])
-
-  // Current node at navPath depth
-  const currentNode = useMemo(
-    () => getNode(tree, navPath),
-    [tree, navPath]
-  )
-
-  // Sub-folders at current level
-  const subFolders = useMemo(
-    () => subFoldersOf(currentNode),
-    [currentNode]
-  )
-
-  // Files directly in this node, sorted
-  const files = useMemo(
-    () => sortMedia([...currentNode._files], sortKey),
-    [currentNode, sortKey]
-  )
-
-  // Sidebar entries — sub-folders of current node with counts + child indicator
+  const tree        = useMemo(() => buildTree(media), [media])
+  const currentNode = useMemo(() => getNode(tree, navPath), [tree, navPath])
+  const subFolders  = useMemo(() => subFoldersOf(currentNode), [currentNode])
+  const files       = useMemo(() => sortMedia([...currentNode._files], sortKey), [currentNode, sortKey])
   const sidebarFolders = useMemo(() =>
     subFolders.map(name => ({
       name,
-      count:       countAll(currentNode[name]),
+      count: countAll(currentNode[name]),
       hasChildren: subFoldersOf(currentNode[name]).length > 0,
     }))
   , [subFolders, currentNode])
-
-  // Top-level folder names (children of root) — used for sidebar root label
   const rootFolders = useMemo(() => subFoldersOf(tree), [tree])
+  const treeItems   = useMemo(() => buildTreeItems(tree, 0, [], navPath), [tree, navPath])
 
-  return { files, subFolders, sidebarFolders, rootFolders }
+  return { files, subFolders, sidebarFolders, rootFolders, treeItems }
 }
