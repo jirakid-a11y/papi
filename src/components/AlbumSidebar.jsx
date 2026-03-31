@@ -1,64 +1,55 @@
 // src/components/AlbumSidebar.jsx
-// Papi — Organism · Album navigation sidebar
+// Papi — Organism · Depth-aware sidebar showing current folder's children
 
-/**
- * AlbumSidebar
- *
- * Usage Guideline
- * ✅ Use when the user has loaded a folder with 2+ sub-albums.
- * ❌ Don't render when all files are in a single album (or "Unsorted") —
- *    hide the sidebar entirely to avoid visual noise.
- *
- * @param {{
- *   albums:      Record<string, string[]>,
- *   albumNames:  string[],
- *   activeAlbum: string,
- *   onSelect:    (albumName: string) => void,
- * }} props
- */
-export default function AlbumSidebar({ albums, albumNames, activeAlbum, onSelect }) {
-  const allItems = [
-    { key: 'all', label: 'All Media', icon: '🗂️' },
-    ...albumNames.map(name => ({
-      key:   name,
-      label: name,
-      icon:  name === 'Unsorted' ? '📂' : '📁',
-    })),
-  ]
+export default function AlbumSidebar({ sidebarFolders, navPath, onNavigate, rootFolders }) {
+  // Label: show current folder name, or "Root" if at top
+  const currentLabel = navPath.length > 0
+    ? navPath[navPath.length - 1]
+    : rootFolders.length === 1
+      ? rootFolders[0]        // show the uploaded folder name
+      : 'Folders'
 
   return (
-    <aside className="w-48 flex-shrink-0 bg-zinc-900 border-r border-zinc-800
-                      flex flex-col overflow-y-auto">
-      <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest
-                    px-4 pt-4 pb-2">
-        Albums
-      </p>
+    <aside className="w-48 flex-shrink-0 flex flex-col overflow-y-auto
+                      bg-zinc-900 border-r border-zinc-800">
 
-      <nav className="flex flex-col gap-0.5 px-2 pb-4">
-        {allItems.map(({ key, label, icon }) => {
-          const count  = albums[key]?.length ?? 0
-          const active = key === activeAlbum
+      {/* Current level label */}
+      <div className="px-3 py-2 border-b border-zinc-800
+                      text-[10px] font-semibold uppercase tracking-widest
+                      text-zinc-500 truncate">
+        {currentLabel}
+      </div>
 
-          return (
+      {/* Sub-folder list */}
+      <nav className="flex flex-col flex-1 py-1 overflow-y-auto">
+        {sidebarFolders.length === 0 ? (
+          <p className="px-3 py-3 text-xs text-zinc-700 italic">No sub-folders</p>
+        ) : (
+          sidebarFolders.map(({ name, count, hasChildren }) => (
             <button
-              key={key}
-              onClick={() => onSelect(key)}
-              className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left
-                          text-xs transition-all duration-150 border-l-2
-                          ${active
-                            ? 'bg-violet-600/10 text-violet-400 border-violet-500'
-                            : 'text-zinc-400 border-transparent hover:bg-zinc-800 hover:text-zinc-100'
-                          }`}
+              key={name}
+              onClick={() => onNavigate(name)}
+              className="flex items-center gap-2 px-3 py-1.5 text-left text-sm
+                         text-zinc-400 border-l-2 border-transparent
+                         hover:bg-zinc-800 hover:text-zinc-100
+                         transition-colors duration-100 group"
             >
-              <span className="text-sm leading-none">{icon}</span>
-              <span className="flex-1 truncate">{label}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full
-                                ${active ? 'bg-violet-500/20 text-violet-300' : 'bg-zinc-800 text-zinc-500'}`}>
-                {count}
+              <span className="text-sm leading-none flex-shrink-0">📁</span>
+              <span className="flex-1 truncate">{name}</span>
+              {/* › arrow if has nested sub-folders */}
+              {hasChildren && (
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" strokeWidth="2.5"
+                     className="text-zinc-600 group-hover:text-zinc-400 flex-shrink-0">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              )}
+              <span className="text-[10px] text-zinc-600 tabular-nums flex-shrink-0">
+                {count.toLocaleString()}
               </span>
             </button>
-          )
-        })}
+          ))
+        )}
       </nav>
     </aside>
   )

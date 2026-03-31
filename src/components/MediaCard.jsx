@@ -1,88 +1,90 @@
 // src/components/MediaCard.jsx
-// Papi — Atom · Single media file card
+// Papi — Finder-style: no badge, no label, hover-only info
 
-import { useInView } from 'react-intersection-observer'
-import { extOf, fmtSize } from '../utils/fileHelpers'
+import { useEffect, useRef, useState, memo } from 'react'
+import { fmtSize } from '../utils/fileHelpers'
 
-const KIND_BADGE = {
-  image: 'bg-violet-600/70 text-white',
-  video: 'bg-amber-500/80 text-black',
-  audio: 'bg-emerald-500/80 text-black',
+// Shared IntersectionObserver for all cards
+const callbackMap = new Map()
+let sharedObserver = null
+
+function getObserver() {
+  if (!sharedObserver) {
+    sharedObserver = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        const cb = callbackMap.get(e.target)
+        if (cb) cb(e.isIntersecting)
+      }),
+      { rootMargin: '300px' }
+    )
+  }
+  return sharedObserver
 }
 
-const KIND_ICON = {
-  video: '🎬',
-  audio: '🎵',
+function useInView() {
+  const ref    = useRef(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || inView) return
+    const obs = getObserver()
+    callbackMap.set(el, visible => {
+      if (visible) { setInView(true); obs.unobserve(el); callbackMap.delete(el) }
+    })
+    obs.observe(el)
+    return () => { obs.unobserve(el); callbackMap.delete(el) }
+  }, [inView])
+  return { ref, inView }
 }
 
-/**
- * MediaCard — displays a single image, video, or audio file.
- *
- * Usage Guideline
- * ✅ Use inside MediaGrid for browsing a flat or grouped list of files.
- * ❌ Don't use standalone outside a grid context — it has no fixed width.
- * ❌ Don't pass a pre-created object URL; let getUrl handle lazy creation.
- *
- * @param {{ item: import('../hooks/useIngestFiles').MediaItem, getUrl: Function, onClick: Function }} props
- */
-export default function MediaCard({ item, getUrl, onClick }) {
-  const { ref, inView } = useInView({ triggerOnce: true, rootMargin: '200px' })
+const MediaCard = memo(function MediaCard({ item, getUrl, onClick }) {
+  const { ref, inView } = useInView()
 
   return (
     <div
       ref={ref}
       onClick={onClick}
-      className="group relative bg-zinc-900 border border-zinc-700/50 rounded-xl
-                 overflow-hidden cursor-pointer select-none
-                 transition-all duration-150
-                 hover:-translate-y-1 hover:border-zinc-500 hover:shadow-xl hover:shadow-black/50"
+      className="group relative rounded-lg overflow-hidden cursor-pointer select-none
+                 bg-zinc-900 border border-transparent
+                 hover:border-blue-500/60 transition-all duration-150"
+      style={{ aspectRatio: '1' }}
     >
-      {/* Thumbnail */}
+      {/* Thumbnail — no badge, no label */}
       {item.kind === 'image' ? (
-        <div className="w-full aspect-square bg-zinc-800">
-          {inView && (
-            <img
-              src={getUrl(item)}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
-          )}
-        </div>
+        inView
+          ? <img src={getUrl(item)} alt="" draggable={false} decoding="async"
+                 className="w-full h-full object-cover" />
+          : <div className="w-full h-full bg-zinc-800" />
       ) : (
-        <div className="w-full aspect-square bg-zinc-800 flex flex-col items-center justify-center gap-2">
-          <span className="text-4xl">{KIND_ICON[item.kind]}</span>
-          <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
-            {extOf(item.name)}
-          </span>
+        <div className="w-full h-full bg-zinc-800 flex flex-col items-center justify-center gap-2">
+          <span className="text-4xl">{item.kind === 'video' ? '🎬' : '🎵'}</span>
         </div>
       )}
 
-      {/* File type badge */}
-      <span className={`absolute top-2 right-2 text-[9px] font-bold uppercase
-                        tracking-wide px-1.5 py-0.5 rounded backdrop-blur-md
-                        ${KIND_BADGE[item.kind]}`}>
-        {extOf(item.name)}
-      </span>
+      {/* Hover overlay — filename + size only on hover */}
+      <div className="absolute inset-x-0 bottom-0
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                      bg-gradient-to-t from-black/80 via-black/40 to-transparent
+                      pt-6 pb-2 px-2 pointer-events-none">
+        <p className="text-xs font-medium text-white truncate leading-tight">{item.name}</p>
+        <p className="text-[10px] text-zinc-400 mt-0.5">{fmtSize(item.size)}</p>
+      </div>
 
-      {/* Play overlay for video / audio */}
+      {/* Play icon for video/audio */}
       {item.kind !== 'image' && (
         <div className="absolute inset-0 flex items-center justify-center
-                        bg-black/0 group-hover:bg-black/40
-                        transition-colors duration-150">
-          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center
-                          opacity-0 scale-75
-                          group-hover:opacity-100 group-hover:scale-100
-                          transition-all duration-150">
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
             <span className="text-black text-sm pl-0.5">▶</span>
           </div>
         </div>
       )}
 
-      {/* Info */}
-      <div className="px-2.5 py-2">
-        <p className="text-xs text-zinc-100 truncate leading-snug">{item.name}</p>
-        <p className="text-[10px] text-zinc-500 mt-0.5">{fmtSize(item.size)}</p>
-      </div>
+      {/* Blue selection ring on hover */}
+      <div className="absolute inset-0 rounded-lg ring-2 ring-inset ring-transparent
+                      group-hover:ring-blue-500/40 transition-all duration-150 pointer-events-none" />
     </div>
   )
-}
+})
+
+export default MediaCard
