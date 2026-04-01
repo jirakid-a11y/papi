@@ -154,20 +154,21 @@ export default function ViewPane({ media, getUrl, navPath, setNavPath, sortKey, 
                   className="group relative rounded-lg overflow-hidden cursor-pointer
                              bg-zinc-900 border border-transparent
                              hover:border-blue-500/60 transition-all duration-150
-                             flex flex-col items-center justify-center"
-                  style={{ aspectRatio: '1' }}
+                             flex flex-col"
                 >
-                  <span
-                    className="group-hover:scale-110 transition-transform duration-150 leading-none"
-                    style={{ fontSize: Math.max(36, gridSize * 0.32) + 'px' }}
-                  >
-                    📁
-                  </span>
-                  <div className="absolute inset-x-0 bottom-0
-                                  opacity-0 group-hover:opacity-100 transition-opacity duration-150
-                                  bg-gradient-to-t from-black/80 via-black/40 to-transparent
-                                  pt-6 pb-2 px-2 pointer-events-none">
-                    <p className="text-xs font-medium text-white truncate leading-tight">{name}</p>
+                  {/* Icon area */}
+                  <div className="flex items-center justify-center w-full"
+                       style={{ aspectRatio: '1' }}>
+                    <span
+                      className="group-hover:scale-110 transition-transform duration-150 leading-none"
+                      style={{ fontSize: Math.max(36, gridSize * 0.32) + 'px' }}
+                    >
+                      📁
+                    </span>
+                  </div>
+                  {/* Folder name — always visible */}
+                  <div className="px-2 py-1.5 border-t border-zinc-800 w-full">
+                    <p className="text-[11px] text-zinc-300 truncate text-center leading-tight">{name}</p>
                   </div>
                   <div className="absolute inset-0 rounded-lg ring-2 ring-inset ring-transparent
                                   group-hover:ring-blue-500/40 transition-all duration-150 pointer-events-none" />
