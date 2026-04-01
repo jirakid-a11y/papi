@@ -1,41 +1,19 @@
 // src/components/Toolbar.jsx
-// Papi — Molecule · Toolbar with Up, Open Folder, inline breadcrumb, sort, grid slider
+// Papi — Molecule · Toolbar: Open Folder, split toggle, sort, grid slider
 
 export default function Toolbar({
   onOpenFolder,
-  onGoUp,
-  canGoUp,
   sortKey,
   onSortChange,
   gridSize,
   onGridSizeChange,
-  activeAlbum,
-  albumFileCount,
+  splitMode,
+  onToggleSplit,
+  hasMedia,
 }) {
-  const handleFolder = (e) => onOpenFolder([...e.target.files])
-  const inAlbum = activeAlbum && activeAlbum !== 'all'
-
   return (
     <div className="flex items-center gap-2 px-3 py-2
                     bg-zinc-900 border-b border-zinc-700 flex-shrink-0 min-w-0">
-
-      {/* ── Up button ── */}
-      <button
-        onClick={onGoUp}
-        disabled={!canGoUp}
-        title="Go up (Backspace)"
-        className={`flex items-center justify-center w-8 h-8 rounded flex-shrink-0
-                    transition-all duration-150
-                    ${canGoUp
-                      ? 'bg-zinc-700 hover:bg-zinc-600 text-zinc-200 cursor-pointer'
-                      : 'bg-zinc-800/40 text-zinc-700 cursor-not-allowed'
-                    }`}
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="18 15 12 9 6 15"/>
-        </svg>
-      </button>
 
       {/* ── Open Folder ── */}
       <label className="flex items-center gap-1.5 px-3 py-1.5 rounded flex-shrink-0
@@ -48,49 +26,35 @@ export default function Toolbar({
         Open
         <input
           type="file" multiple accept="image/*,video/*,audio/*"
-          onChange={handleFolder}
+          onChange={e => onOpenFolder([...e.target.files])}
           // @ts-ignore
           webkitdirectory=""
           className="hidden"
         />
       </label>
 
-      {/* ── Inline breadcrumb — only when inside an album ── */}
-      {inAlbum && (
-        <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" strokeWidth="2" className="text-zinc-600 flex-shrink-0">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-          <button
-            onClick={onGoUp}
-            className="text-blue-400 hover:text-blue-300 transition-colors
-                       flex-shrink-0 font-medium whitespace-nowrap"
-            style={{ fontSize: '18px' }}
-          >
-            Albums
-          </button>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" strokeWidth="2" className="text-zinc-600 flex-shrink-0">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-          <span
-            className="font-semibold text-zinc-100 truncate"
-            style={{ fontSize: '18px' }}
-          >
-            {activeAlbum}
-          </span>
-          {albumFileCount != null && (
-            <span className="flex-shrink-0 text-[11px] text-zinc-500
-                             bg-zinc-800 px-2 py-0.5 rounded-full ml-1">
-              {albumFileCount.toLocaleString()} files
-            </span>
-          )}
-        </div>
-      )}
-
       {/* ── Spacer ── */}
       <div className="flex-1 min-w-0" />
+
+      {/* ── Split view toggle — only when media is loaded ── */}
+      {hasMedia && (
+        <button
+          onClick={onToggleSplit}
+          title={splitMode ? 'Single view' : 'Split view'}
+          className={`flex items-center justify-center w-8 h-8 rounded flex-shrink-0
+                      transition-all duration-150 border
+                      ${splitMode
+                        ? 'bg-blue-600/20 border-blue-500/60 text-blue-400'
+                        : 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500'}`}
+        >
+          {/* Two-panel icon */}
+          <svg width="14" height="14" viewBox="0 0 20 14" fill="none"
+               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="1" width="18" height="12" rx="1.5"/>
+            <line x1="10" y1="1" x2="10" y2="13"/>
+          </svg>
+        </button>
+      )}
 
       {/* ── Sort ── */}
       <select
@@ -110,7 +74,6 @@ export default function Toolbar({
 
       {/* ── Grid size slider ── */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        {/* Small grid icon */}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-500">
           <rect x="3" y="3" width="4" height="4" rx="0.5"/>
           <rect x="10" y="3" width="4" height="4" rx="0.5"/>
@@ -130,7 +93,6 @@ export default function Toolbar({
           className="w-20 cursor-pointer"
           style={{ accentColor: '#2563eb' }}
         />
-        {/* Large grid icon */}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-500">
           <rect x="3" y="3" width="8" height="8" rx="1"/>
           <rect x="13" y="3" width="8" height="8" rx="1"/>
