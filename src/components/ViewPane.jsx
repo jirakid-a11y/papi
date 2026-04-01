@@ -42,7 +42,7 @@ export default function ViewPane({ media, getUrl, navPath, setNavPath, sortKey, 
   }, [lightboxOpen, files.length])
 
   return (
-    <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+    <div className="relative flex flex-col flex-1 min-w-0 overflow-hidden">
 
       {/* ── Path bar ── */}
       <div className="flex items-center gap-1 px-2 h-8 bg-zinc-950 border-b border-zinc-800 flex-shrink-0 min-w-0">
