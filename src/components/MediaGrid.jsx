@@ -13,11 +13,13 @@ export default function MediaGrid({ flatItems, getUrl, onCardClick, gridSize }) 
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
+    let raf = null
     const ro = new ResizeObserver(entries => {
-      setWidth(entries[0].contentRect.width)
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => setWidth(entries[0].contentRect.width))
     })
     ro.observe(el)
-    return () => ro.disconnect()
+    return () => { ro.disconnect(); cancelAnimationFrame(raf) }
   }, [])
 
   const cols = useMemo(() => {

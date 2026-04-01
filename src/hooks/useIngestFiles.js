@@ -4,7 +4,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { kindOf, albumOf, isSupported } from '../utils/fileHelpers'
 
-const CHUNK_SIZE = 200 // files processed per frame yield — larger = faster ingest
+const CHUNK_SIZE = 1000 // files processed per frame yield — larger = faster ingest
 
 // macOS hidden folders to exclude
 const BLOCKED_FOLDERS = new Set(['__MACOSX', '.Spotlight-V100', '.Trashes', '.fseventsd', '.TemporaryItems'])

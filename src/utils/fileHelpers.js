@@ -68,16 +68,16 @@ export const isSupported = (file) => {
  * @param {string} sortKey  'name-asc' | 'name-desc' | 'size-asc' | 'size-desc' | 'type'
  * @returns {Array} new sorted array
  */
+// Sorts in-place — callers must pass a copy if the original must be preserved.
 export const sortMedia = (items, sortKey) => {
-  const sorted = [...items]
   switch (sortKey) {
-    case 'latest':    return sorted.sort((a, b) => b.lastModified - a.lastModified)
-    case 'oldest':    return sorted.sort((a, b) => a.lastModified - b.lastModified)
-    case 'name-asc':  return sorted.sort((a, b) => a.name.localeCompare(b.name))
-    case 'name-desc': return sorted.sort((a, b) => b.name.localeCompare(a.name))
-    case 'size-asc':  return sorted.sort((a, b) => a.size - b.size)
-    case 'size-desc': return sorted.sort((a, b) => b.size - a.size)
-    case 'type':      return sorted.sort((a, b) => a.kind.localeCompare(b.kind))
-    default:          return sorted
+    case 'latest':    return items.sort((a, b) => b.lastModified - a.lastModified)
+    case 'oldest':    return items.sort((a, b) => a.lastModified - b.lastModified)
+    case 'name-asc':  return items.sort((a, b) => a.name.localeCompare(b.name))
+    case 'name-desc': return items.sort((a, b) => b.name.localeCompare(a.name))
+    case 'size-asc':  return items.sort((a, b) => a.size - b.size)
+    case 'size-desc': return items.sort((a, b) => b.size - a.size)
+    case 'type':      return items.sort((a, b) => a.kind.localeCompare(b.kind))
+    default:          return items
   }
 }
