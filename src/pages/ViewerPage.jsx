@@ -1,7 +1,7 @@
 // src/pages/ViewerPage.jsx
 import { useState, useCallback } from 'react'
 import { useIngestFiles } from '../hooks/useIngestFiles'
-import { useAlbums }      from '../hooks/useAlbums'
+import { useMediaTree, useAlbums } from '../hooks/useAlbums'
 import Toolbar            from '../components/Toolbar'
 import AlbumSidebar       from '../components/AlbumSidebar'
 import ViewPane           from '../components/ViewPane'
@@ -19,10 +19,12 @@ export default function ViewerPage() {
   const [navPathL,  setNavPathL]  = useState([])
   const [navPathR,  setNavPathR]  = useState([])
 
-  const hasMedia = media.length > 0
+  // Build the tree once — passed as prop so ViewPane(s) don't rebuild it
+  const tree     = useMediaTree(media)
+  const hasMedia = tree._count > 0
 
   // Sidebar tracks the left (primary) pane's location
-  const { treeItems, rootFolders } = useAlbums(media, navPathL, sortKey)
+  const { treeItems, rootFolders } = useAlbums(tree, navPathL, sortKey)
 
   const handleIngest = useCallback((rawFiles) => {
     const valid = [...rawFiles].filter(f =>
@@ -73,7 +75,7 @@ export default function ViewerPage() {
         {/* Pane(s) */}
         <div className="flex flex-1 overflow-hidden">
           <ViewPane
-            media={media}
+            tree={tree}
             getUrl={getUrl}
             navPath={navPathL}
             setNavPath={setNavPathL}
@@ -86,7 +88,7 @@ export default function ViewerPage() {
             <>
               <div className="w-px bg-zinc-700 flex-shrink-0" />
               <ViewPane
-                media={media}
+                tree={tree}
                 getUrl={getUrl}
                 navPath={navPathR}
                 setNavPath={setNavPathR}

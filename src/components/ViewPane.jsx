@@ -6,13 +6,13 @@ import { useAlbums } from '../hooks/useAlbums'
 import MediaCard from './MediaCard'
 import Lightbox from './Lightbox'
 
-export default function ViewPane({ media, getUrl, navPath, setNavPath, sortKey, gridSize, onIngest }) {
+export default function ViewPane({ tree, getUrl, navPath, setNavPath, sortKey, gridSize, onIngest }) {
   const [lbIndex,  setLbIndex]  = useState(null)
   const [dragging, setDragging] = useState(false)
 
-  const { files, subFolders } = useAlbums(media, navPath, sortKey)
+  const { files, subFolders } = useAlbums(tree, navPath, sortKey)
 
-  const hasMedia     = media.length > 0
+  const hasMedia     = tree._count > 0
   const lightboxOpen = lbIndex !== null
   const lightboxItem = lightboxOpen ? (files[lbIndex] ?? null) : null
   const canGoUp      = navPath.length > 0
@@ -23,6 +23,9 @@ export default function ViewPane({ media, getUrl, navPath, setNavPath, sortKey, 
   const handleNavigate = useCallback((name) => {
     setNavPath(p => [...p, name])
   }, [setNavPath])
+
+  // Stable handler — avoids defeating MediaCard's memo on every lbIndex change
+  const handleCardOpen = useCallback((idx) => setLbIndex(idx), [])
 
   const handleGoUp = useCallback(() => {
     setNavPath(p => p.slice(0, -1))
@@ -180,7 +183,8 @@ export default function ViewPane({ media, getUrl, navPath, setNavPath, sortKey, 
                   key={item.id}
                   item={item}
                   getUrl={getUrl}
-                  onClick={() => setLbIndex(idx)}
+                  index={idx}
+                  onOpen={handleCardOpen}
                 />
               ))}
             </div>

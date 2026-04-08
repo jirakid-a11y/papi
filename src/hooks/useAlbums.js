@@ -71,8 +71,11 @@ function buildTreeItems(node, depth, pathSoFar, navPath) {
   return items
 }
 
-export function useAlbums(media, navPath, sortKey) {
-  const tree        = useMemo(() => buildTree(media), [media])
+export function useMediaTree(media) {
+  return useMemo(() => buildTree(media), [media])
+}
+
+export function useAlbums(tree, navPath, sortKey) {
   const currentNode = useMemo(() => getNode(tree, navPath), [tree, navPath])
   const subFolders  = useMemo(() => subFoldersOf(currentNode), [currentNode])
   const files       = useMemo(() => sortMedia([...currentNode._files], sortKey), [currentNode, sortKey])

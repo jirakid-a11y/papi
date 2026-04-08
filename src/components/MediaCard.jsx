@@ -1,12 +1,13 @@
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 import { extOf } from '../utils/fileHelpers'
 
 const KIND_ICON = { audio: '🎵' }
 
-const MediaCard = memo(function MediaCard({ item, getUrl, onClick }) {
+const MediaCard = memo(function MediaCard({ item, getUrl, index, onOpen }) {
+  const handleClick = useCallback(() => onOpen(index), [onOpen, index])
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       className="group bg-zinc-900 border border-zinc-700/50 rounded-xl
                  overflow-hidden cursor-pointer select-none flex flex-col
                  transition-all duration-150
