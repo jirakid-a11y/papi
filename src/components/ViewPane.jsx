@@ -3,10 +3,10 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useAlbums } from '../hooks/useAlbums'
-import MediaCard from './MediaCard'
+import MediaGrid from './MediaGrid'
 import Lightbox from './Lightbox'
 
-export default function ViewPane({ tree, getUrl, navPath, setNavPath, sortKey, gridSize, onIngest }) {
+export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, sortKey, gridSize, onIngest }) {
   const [lbIndex,  setLbIndex]  = useState(null)
   const [dragging, setDragging] = useState(false)
 
@@ -97,10 +97,7 @@ export default function ViewPane({ tree, getUrl, navPath, setNavPath, sortKey, g
       </div>
 
       {/* ── Content ── */}
-      <main
-        className="flex-1 overflow-y-auto"
-        onWheelCapture={lightboxOpen ? handleWheel : undefined}
-      >
+      <main className="flex-1 min-h-0 overflow-hidden">
         {!hasMedia ? (
 
           /* Drop zone */
@@ -144,51 +141,15 @@ export default function ViewPane({ tree, getUrl, navPath, setNavPath, sortKey, g
 
         ) : (
 
-          /* Mixed grid — folders first, then files */
-          <div className="p-3">
-            <div
-              className="grid gap-1"
-              style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridSize}px, 1fr))` }}
-            >
-              {subFolders.map(name => (
-                <button
-                  key={'dir-' + name}
-                  onClick={() => handleNavigate(name)}
-                  className="group relative rounded-lg overflow-hidden cursor-pointer
-                             bg-zinc-900 border border-transparent
-                             hover:border-blue-500/60 transition-all duration-150
-                             flex flex-col"
-                >
-                  {/* Icon area */}
-                  <div className="flex items-center justify-center w-full"
-                       style={{ aspectRatio: '1' }}>
-                    <span
-                      className="group-hover:scale-110 transition-transform duration-150 leading-none"
-                      style={{ fontSize: Math.max(36, gridSize * 0.32) + 'px' }}
-                    >
-                      📁
-                    </span>
-                  </div>
-                  {/* Folder name — always visible */}
-                  <div className="px-2 py-1.5 border-t border-zinc-800 w-full">
-                    <p className="text-[11px] text-zinc-300 truncate text-center leading-tight">{name}</p>
-                  </div>
-                  <div className="absolute inset-0 rounded-lg ring-2 ring-inset ring-transparent
-                                  group-hover:ring-blue-500/40 transition-all duration-150 pointer-events-none" />
-                </button>
-              ))}
-
-              {files.map((item, idx) => (
-                <MediaCard
-                  key={item.id}
-                  item={item}
-                  getUrl={getUrl}
-                  index={idx}
-                  onOpen={handleCardOpen}
-                />
-              ))}
-            </div>
-          </div>
+          /* Mixed grid — folders first, then files (virtualized) */
+          <MediaGrid
+            folders={subFolders}
+            files={files}
+            thumbs={thumbs}
+            gridSize={gridSize}
+            onNavigate={handleNavigate}
+            onOpen={handleCardOpen}
+          />
         )}
       </main>
 
