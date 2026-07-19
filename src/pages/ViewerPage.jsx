@@ -1,6 +1,7 @@
 // src/pages/ViewerPage.jsx
 import { useState, useCallback } from 'react'
 import { useIngestFiles } from '../hooks/useIngestFiles'
+import { useThumbnails } from '../hooks/useThumbnails'
 import { useMediaTree, useAlbums } from '../hooks/useAlbums'
 import Toolbar            from '../components/Toolbar'
 import AlbumSidebar       from '../components/AlbumSidebar'
@@ -12,6 +13,7 @@ const GRID_DEFAULT = 160
 
 export default function ViewerPage() {
   const { media, progress, ingest, getUrl } = useIngestFiles()
+  const thumbs = useThumbnails()   // shared thumbnail cache (both panes reuse it)
 
   const [sortKey,   setSortKey]   = useState('latest')
   const [gridSize,  setGridSize]  = useState(GRID_DEFAULT)
@@ -34,10 +36,11 @@ export default function ViewerPage() {
     if (valid.length > FILE_LIMIT) {
       if (!window.confirm(`You're opening ${valid.length.toLocaleString()} files. Continue?`)) return
     }
+    thumbs.clear()   // ids are reused per ingest — drop stale thumbnails
     ingest(rawFiles)
     setNavPathL([])
     setNavPathR([])
-  }, [ingest])
+  }, [ingest, thumbs])
 
   const handleToggleSplit = useCallback(() => {
     setSplitMode(m => {
@@ -77,6 +80,7 @@ export default function ViewerPage() {
           <ViewPane
             tree={tree}
             getUrl={getUrl}
+            thumbs={thumbs}
             navPath={navPathL}
             setNavPath={setNavPathL}
             sortKey={sortKey}
@@ -90,6 +94,7 @@ export default function ViewerPage() {
               <ViewPane
                 tree={tree}
                 getUrl={getUrl}
+                thumbs={thumbs}
                 navPath={navPathR}
                 setNavPath={setNavPathR}
                 sortKey={sortKey}
