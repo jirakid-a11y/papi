@@ -1,0 +1,1 @@
+(function(){self.onmessage=async e=>{let{id:t,file:n,maxW:r}=e.data;try{let e=await createImageBitmap(n,{resizeWidth:r,resizeQuality:`medium`}),i=new OffscreenCanvas(e.width,e.height);i.getContext(`2d`).drawImage(e,0,0),e.close();let a=await i.convertToBlob({type:`image/jpeg`,quality:.8});self.postMessage({id:t,blob:a})}catch(e){self.postMessage({id:t,error:String(e)})}}})();
