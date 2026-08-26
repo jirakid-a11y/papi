@@ -15,11 +15,12 @@ export default function ViewerPage() {
   const { media, progress, ingest, getUrl } = useIngestFiles()
   const thumbs = useThumbnails()   // shared thumbnail cache (both panes reuse it)
 
-  const [sortKey,   setSortKey]   = useState('latest')
-  const [gridSize,  setGridSize]  = useState(GRID_DEFAULT)
-  const [splitMode, setSplitMode] = useState(false)
-  const [navPathL,  setNavPathL]  = useState([])
-  const [navPathR,  setNavPathR]  = useState([])
+  const [sortKey,     setSortKey]     = useState('latest')
+  const [gridSize,    setGridSize]    = useState(GRID_DEFAULT)
+  const [splitMode,   setSplitMode]   = useState(false)
+  const [showSidebar, setShowSidebar] = useState(true)
+  const [navPathL,    setNavPathL]    = useState([])
+  const [navPathR,    setNavPathR]    = useState([])
 
   // Build the tree once — passed as prop so ViewPane(s) don't rebuild it
   const tree     = useMediaTree(media)
@@ -42,6 +43,8 @@ export default function ViewerPage() {
     setNavPathR([])
   }, [ingest, thumbs])
 
+  const handleToggleSidebar = useCallback(() => setShowSidebar(s => !s), [])
+
   const handleToggleSplit = useCallback(() => {
     setSplitMode(m => {
       if (!m) setNavPathR([])  // reset right pane when opening split
@@ -60,13 +63,15 @@ export default function ViewerPage() {
         onGridSizeChange={setGridSize}
         splitMode={splitMode}
         onToggleSplit={handleToggleSplit}
+        showSidebar={showSidebar}
+        onToggleSidebar={handleToggleSidebar}
         hasMedia={hasMedia}
       />
 
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Sidebar — fixed, always tracks left pane */}
-        {hasMedia && treeItems.length > 0 && (
+        {/* Sidebar — tracks left pane; toggle from the toolbar */}
+        {showSidebar && hasMedia && treeItems.length > 0 && (
           <AlbumSidebar
             treeItems={treeItems}
             navPath={navPathL}
@@ -114,6 +119,7 @@ export default function ViewerPage() {
         </span>
         <span className="hidden sm:flex items-center gap-3">
           <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">←→</kbd> navigate</span>
+          <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Space</kbd> slideshow</span>
           <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Esc</kbd> close</span>
         </span>
       </div>

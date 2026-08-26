@@ -9,6 +9,8 @@ export default function Toolbar({
   onGridSizeChange,
   splitMode,
   onToggleSplit,
+  showSidebar,
+  onToggleSidebar,
   hasMedia,
 }) {
   return (
@@ -32,6 +34,26 @@ export default function Toolbar({
           className="hidden"
         />
       </label>
+
+      {/* ── Sidebar toggle — only when media is loaded ── */}
+      {hasMedia && (
+        <button
+          onClick={onToggleSidebar}
+          title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+          className={`flex items-center justify-center w-8 h-8 rounded flex-shrink-0
+                      transition-all duration-150 border
+                      ${showSidebar
+                        ? 'bg-blue-600/20 border-blue-500/60 text-blue-400'
+                        : 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500'}`}
+        >
+          {/* Left-panel icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <line x1="9" y1="4" x2="9" y2="20"/>
+          </svg>
+        </button>
+      )}
 
       {/* ── Spacer ── */}
       <div className="flex-1 min-w-0" />
