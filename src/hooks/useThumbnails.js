@@ -16,15 +16,16 @@
 
 import { useState, useEffect } from 'react'
 
-const THUMB_W   = 400
-const MAX_POOL  = 4
-const MAX_CACHE = 1200   // ~1200 x ~12KB ≈ 14MB ceiling, well above any viewport
+const THUMB_W     = 400
+const MAX_POOL    = 4
+const MAX_CACHE   = 1200   // ~1200 x ~12KB ≈ 14MB ceiling, well above any viewport
+const JOB_TIMEOUT = 12000  // ms before a non-responding worker is deemed stuck & replaced
 
 function createThumbnailManager() {
   const cache       = new Map()   // id -> objectURL, iteration order = LRU (oldest first)
   const queue       = []          // pending image jobs: { id, file }
   const queued      = new Set()   // ids waiting in `queue`
-  const inFlight    = new Set()   // ids dispatched to a worker
+  const inFlight    = new Map()   // id -> File, dispatched to a worker (file kept for fallback)
   const idleWorkers = []          // workers ready for a job
   const listeners   = new Map()   // id -> Set<cb(url|undefined)>
   let   workers     = null        // lazily created pool
@@ -55,13 +56,57 @@ function createThumbnailManager() {
     notify(id, cache.get(id))
   }
 
+  // Resolve a job: prefer the generated thumbnail; otherwise fall back to the
+  // original file so the tile is never left blank (undecodable format, worker
+  // error, or a stuck worker that was replaced).
+  const resolveJob = (id, blob) => {
+    if (!inFlight.has(id)) return   // stale result (folder changed / already resolved)
+    const file = inFlight.get(id)
+    inFlight.delete(id)
+    if (blob) put(id, blob)
+    else put(id, file)   // fallback to the original (undecodable format, or stuck worker)
+  }
+
+  const spawnWorker = () => {
+    const w = new Worker(new URL('../workers/thumbWorker.js', import.meta.url), { type: 'module' })
+    w.job = null
+    w.timer = null
+    w.onmessage = (e) => {
+      clearTimeout(w.timer); w.timer = null
+      const done = w.job; w.job = null
+      resolveJob(e.data.id ?? done, e.data.blob)
+      idleWorkers.push(w)
+      pump()
+    }
+    // A worker that hangs (no message within JOB_TIMEOUT) or errors is dead to
+    // us: replace it so the pool never shrinks, and recover its job via fallback.
+    w.onerror = () => recycleWorker(w)
+    return w
+  }
+
+  const recycleWorker = (w) => {
+    clearTimeout(w.timer)
+    const stuckId = w.job
+    w.job = null
+    try { w.terminate() } catch { /* noop */ }
+    const wi = workers.indexOf(w);      if (wi >= 0) workers.splice(wi, 1)
+    const ii = idleWorkers.indexOf(w);  if (ii >= 0) idleWorkers.splice(ii, 1)
+    const nw = spawnWorker()
+    workers.push(nw); idleWorkers.push(nw)
+    if (stuckId != null) resolveJob(stuckId, null)   // don't leave the tile blank
+    pump()
+  }
+
   const pump = () => {
     while (idleWorkers.length && queue.length) {
       const job = queue.shift()
       queued.delete(job.id)
       if (cache.has(job.id)) continue        // became available while queued
-      inFlight.add(job.id)
-      idleWorkers.pop().postMessage({ id: job.id, file: job.file, maxW: THUMB_W })
+      inFlight.set(job.id, job.file)
+      const w = idleWorkers.pop()
+      w.job = job.id
+      w.timer = setTimeout(() => recycleWorker(w), JOB_TIMEOUT)
+      w.postMessage({ id: job.id, file: job.file, maxW: THUMB_W })
     }
   }
 
@@ -70,15 +115,7 @@ function createThumbnailManager() {
     workers = []
     const n = Math.min(MAX_POOL, Math.max(1, (navigator.hardwareConcurrency || 4) - 1))
     for (let i = 0; i < n; i++) {
-      const w = new Worker(new URL('../workers/thumbWorker.js', import.meta.url), { type: 'module' })
-      w.onmessage = (e) => {
-        const { id, blob } = e.data
-        inFlight.delete(id)
-        if (blob) put(id, blob)
-        else notify(id, undefined)   // unsupported/failed — leave uncached, may retry on remount
-        idleWorkers.push(w)
-        pump()
-      }
+      const w = spawnWorker()
       workers.push(w)
       idleWorkers.push(w)
     }
@@ -121,20 +158,22 @@ function createThumbnailManager() {
       if (i >= 0) queue.splice(i, 1)
     },
 
-    // Reset for a new ingest (ids are reused per folder open).
+    // Reset for a new ingest (ids are reused per folder open). In-flight decodes
+    // are abandoned — their results are dropped by resolveJob's staleness guard.
     clear: () => {
       cache.forEach(url => URL.revokeObjectURL(url))
       cache.clear()
       queue.length = 0
       queued.clear()
       inFlight.clear()
+      if (workers) workers.forEach(w => { clearTimeout(w.timer); w.timer = null; w.job = null })
       listeners.forEach(set => set.forEach(cb => cb(undefined)))
     },
 
     destroy: () => {
       cache.forEach(url => URL.revokeObjectURL(url))
       cache.clear()
-      if (workers) workers.forEach(w => w.terminate())
+      if (workers) workers.forEach(w => { clearTimeout(w.timer); w.terminate() })
     },
   }
 }
