@@ -118,8 +118,9 @@ export default function ViewerPage() {
           {!hasMedia ? 'Ready — open a folder to begin' : `${media.length.toLocaleString()} files loaded`}
         </span>
         <span className="hidden sm:flex items-center gap-3">
-          <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">←→</kbd> navigate</span>
+          <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">←→</kbd> / <kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">⇥</kbd> navigate</span>
           <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Space</kbd> slideshow</span>
+          <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">RMB+scroll</kbd> zoom</span>
           <span><kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">Esc</kbd> close</span>
         </span>
       </div>

@@ -35,15 +35,6 @@ export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, so
     setNavPath(p => idx < 0 ? [] : p.slice(0, idx + 1))
   }, [setNavPath])
 
-  const handleWheel = useCallback((e) => {
-    if (!lightboxOpen) return
-    e.preventDefault()
-    setLbIndex(i => e.deltaY > 0
-      ? (i + 1) % files.length
-      : (i - 1 + files.length) % files.length
-    )
-  }, [lightboxOpen, files.length])
-
   return (
     <div className="relative flex flex-col flex-1 min-w-0 overflow-hidden">
 
@@ -162,7 +153,6 @@ export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, so
         onClose={() => setLbIndex(null)}
         onPrev={() => setLbIndex(i => (i - 1 + files.length) % files.length)}
         onNext={() => setLbIndex(i => (i + 1) % files.length)}
-        onWheel={handleWheel}
       />
     </div>
   )
