@@ -204,6 +204,7 @@ export default function Lightbox({ isOpen, item, getUrl, index, total, onClose, 
             src={url}
             controls
             autoPlay
+            muted
             onEnded={handleEnded}
             className="max-w-[90%] max-h-[90%] rounded-lg shadow-2xl outline-none"
           />
