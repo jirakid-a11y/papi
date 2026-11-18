@@ -8,6 +8,7 @@ import Lightbox from './Lightbox'
 
 export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, sortKey, gridSize, onIngest }) {
   const [lbIndex,  setLbIndex]  = useState(null)
+  const [scrollTarget, setScrollTarget] = useState(null)
   const [dragging, setDragging] = useState(false)
 
   const { files, subFolders } = useAlbums(tree, navPath, sortKey)
@@ -18,7 +19,7 @@ export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, so
   const canGoUp      = navPath.length > 0
 
   // Reset lightbox whenever we navigate away
-  useEffect(() => { setLbIndex(null) }, [navPath])
+  useEffect(() => { setLbIndex(null); setScrollTarget(null) }, [navPath])
 
   const handleNavigate = useCallback((name) => {
     setNavPath(p => [...p, name])
@@ -140,6 +141,8 @@ export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, so
             gridSize={gridSize}
             onNavigate={handleNavigate}
             onOpen={handleCardOpen}
+            scrollTarget={scrollTarget}
+            activeIndex={lbIndex ?? scrollTarget?.index}
           />
         )}
       </main>
@@ -150,7 +153,7 @@ export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, so
         getUrl={getUrl}
         index={lbIndex ?? 0}
         total={files.length}
-        onClose={() => setLbIndex(null)}
+        onClose={() => { setScrollTarget({ index: lbIndex }); setLbIndex(null) }}
         onPrev={() => setLbIndex(i => (i - 1 + files.length) % files.length)}
         onNext={() => setLbIndex(i => (i + 1) % files.length)}
       />

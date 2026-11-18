@@ -19,7 +19,7 @@ import { extOf } from '../utils/fileHelpers'
 // Keep in sync with LABEL_H in MediaGrid.jsx (h-7 = 28px).
 const AUDIO_ICON = '🎵'
 
-function MediaCard({ item, index, onOpen, thumbs }) {
+function MediaCard({ item, index, onOpen, thumbs, active }) {
   // Subscribe to this id's thumbnail; re-reads the cache whenever it changes.
   const thumb = useSyncExternalStore(
     useCallback(cb => thumbs.subscribe(item.id, cb), [thumbs, item.id]),
@@ -89,8 +89,10 @@ function MediaCard({ item, index, onOpen, thumbs }) {
   return (
     <div
       onClick={() => onOpen(index)}
-      className="group h-full flex flex-col rounded-lg overflow-hidden cursor-pointer select-none
-                 bg-zinc-900 border border-zinc-700/50 transition-colors hover:border-zinc-500"
+      className={`group h-full flex flex-col rounded-lg overflow-hidden cursor-pointer select-none
+                 bg-zinc-900 border transition-colors ${
+                   active ? 'border-blue-500 ring-2 ring-blue-500/60' : 'border-zinc-700/50 hover:border-zinc-500'
+                 }`}
     >
       {/* Square-ish thumbnail area — fills all row height above the label */}
       <div className="relative flex-1 min-h-0 bg-zinc-800">
