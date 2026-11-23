@@ -16,7 +16,7 @@ const PAD      = 12
 const LABEL_H  = 28   // keep in sync with MediaCard label (h-7)
 const OVERSCAN = 3
 
-export default function MediaGrid({ folders, files, thumbs, gridSize, onNavigate, onOpen }) {
+export default function MediaGrid({ folders, files, thumbs, gridSize, onNavigate, onOpen, scrollTarget, activeIndex }) {
   const scrollRef = useRef(null)
   const [width, setWidth] = useState(0)
 
@@ -66,6 +66,14 @@ export default function MediaGrid({ folders, files, thumbs, gridSize, onNavigate
   // Recompute positions when tile height or column count changes.
   useEffect(() => { virtualizer.measure() }, [rowH, cols, virtualizer])
 
+  // After the lightbox closes, scroll the grid to the last-viewed file.
+  useEffect(() => {
+    if (!scrollTarget) return
+    const row = Math.floor((folders.length + scrollTarget.index) / cols)
+    virtualizer.scrollToIndex(row, { align: 'center' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollTarget])
+
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
       <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
@@ -103,6 +111,7 @@ export default function MediaGrid({ folders, files, thumbs, gridSize, onNavigate
                       index={cell.index}
                       onOpen={onOpen}
                       thumbs={thumbs}
+                      active={cell.index === activeIndex}
                     />
                   )
                 )}
