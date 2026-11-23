@@ -111,10 +111,10 @@ export default function ViewPane({ tree, getUrl, thumbs, navPath, setNavPath, so
               <p className="text-base font-semibold text-zinc-300">Open a folder</p>
               <p className="text-sm text-zinc-600 mt-1">Click here or drag &amp; drop a folder</p>
             </div>
-            <button type="button"
+            <span
               className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded pointer-events-none">
               Choose Folder
-            </button>
+            </span>
             <p className="text-xs text-zinc-700 tracking-wide">
               JPEG · PNG · GIF · WebP · MP4 · MOV · WebM · MP3 · WAV · FLAC · AAC
             </p>

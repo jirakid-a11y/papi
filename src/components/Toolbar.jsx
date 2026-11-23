@@ -108,10 +108,10 @@ export default function Toolbar({
           <rect x="17" y="17" width="4" height="4" rx="0.5"/>
         </svg>
         <input
-          type="range" min="80" max="320" step="10"
-          value={gridSize}
-          onChange={e => onGridSizeChange(Number(e.target.value))}
-          title={`Grid size: ${gridSize}px`}
+          type="range" min="0" max="100" step="1"
+          value={Math.round((gridSize - 80) / 2.4)}
+          onChange={e => onGridSizeChange(Math.round(80 + Number(e.target.value) * 2.4))}
+          title={`Grid size: ${Math.round((gridSize - 80) / 2.4)}`}
           className="w-20 cursor-pointer"
           style={{ accentColor: '#2563eb' }}
         />

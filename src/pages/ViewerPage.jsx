@@ -9,7 +9,7 @@ import ViewPane           from '../components/ViewPane'
 import IngestionProgress  from '../components/IngestionProgress'
 
 const FILE_LIMIT   = 5000
-const GRID_DEFAULT = 160
+const GRID_DEFAULT = 320
 
 export default function ViewerPage() {
   const { media, progress, ingest, getUrl } = useIngestFiles()
